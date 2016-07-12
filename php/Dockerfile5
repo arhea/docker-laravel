@@ -1,0 +1,32 @@
+FROM php:5-fpm-alpine
+
+MAINTAINER Alex Rhea <alex.rhea@gmail.com>
+
+RUN apk update && apk add --update \
+    curl-dev \
+    libpng-dev \
+    freetype-dev \
+    libssl1.0 \
+    libmcrypt-dev \
+    && rm -rf /var/cache/apk/*
+
+# configure gd library
+RUN docker-php-ext-configure gd \
+    --enable-gd-native-ttf \
+    --with-freetype-dir=/usr/include/freetype2
+
+# install dependencies
+RUN docker-php-ext-install gd mcrypt pdo_mysql pdo_pgsql
+
+COPY ./fpm/laravel.ini /usr/local/etc/php/conf.d/laravel.ini
+COPY ./fpm/laravel.pool.conf /usr/local/etc/php-fpm.d/laravel.pool.conf
+
+COPY ./ /var/www/html
+
+RUN chown -R www-data /var/www/html/storage
+
+WORKDIR /var/www/html
+
+CMD ["php-fpm"]
+
+EXPOSE 9000
