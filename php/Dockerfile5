@@ -3,12 +3,22 @@ FROM php:5-fpm-alpine
 MAINTAINER Alex Rhea <alex.rhea@gmail.com>
 
 RUN apk update && apk add --update \
+    coreutils \
+    tar \
     curl-dev \
-    libpng-dev \
     freetype-dev \
-    libssl1.0 \
+    libjpeg-turbo-dev \
+    libltdl \
     libmcrypt-dev \
+    libpng-dev \
+    libssl1.0 \
+    libmemcached-dev \
+    postgresql-dev \
+    libsasl \
     && rm -rf /var/cache/apk/*
+
+# install mcrypt library
+RUN docker-php-ext-install -j$(nproc) mcrypt
 
 # configure gd library
 RUN docker-php-ext-configure gd \
@@ -16,14 +26,16 @@ RUN docker-php-ext-configure gd \
     --with-freetype-dir=/usr/include/freetype2
 
 # install dependencies
-RUN docker-php-ext-install gd mcrypt pdo_mysql pdo_pgsql
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    gd
 
-COPY ./fpm/laravel.ini /usr/local/etc/php/conf.d/laravel.ini
-COPY ./fpm/laravel.pool.conf /usr/local/etc/php-fpm.d/laravel.pool.conf
+# install memcached
+RUN pecl install memcached
 
-COPY ./ /var/www/html
-
-RUN chown -R www-data /var/www/html/storage
+COPY ./laravel.ini /usr/local/etc/php/conf.d/laravel.ini
+COPY ./laravel.pool.conf /usr/local/etc/php-fpm.d/laravel.pool.conf
 
 WORKDIR /var/www/html
 
